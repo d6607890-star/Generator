@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Генератор расследования CRASH с несколькими подозреваемыми</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+  label { display: block; margin-top: 15px; font-weight: bold; }
+  textarea, input[type=text], input[type=url], input[type=tel], input[type=number] { width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; }
+  button, .remove-btn { margin-top: 10px; padding: 8px 15px; font-size: 14px; border:none; background: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+  button:hover, .remove-btn:hover { background: #0056b3; }
+  .remove-btn { background: #dc3545; float: right; }
+  #result { white-space: pre-wrap; background: #fff; border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 6px; font-family: monospace; min-height: 150px; }
+  .suspect-block { border: 1px solid #bbb; padding: 15px; margin-top: 15px; border-radius: 6px; background: #fafafa; position: relative; }
+  h3 { margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<h2>Генератор расследования CRASH для SAMP RP</h2>
+
+<form id="reportForm">
+
+  <label for="boss">TO: Начальник (Имя Фамилия)</label>
+  <input type="text" id="boss" required placeholder="Например: Reich Carington" />
+
+  <label for="author">FROM: Автор расследования (Имя Фамилия)</label>
+  <input type="text" id="author" required placeholder="Например: Benedict Moon" />
+
+  <label for="gif">Ссылка на GIF или логотип подразделения</label>
+  <input type="url" id="gif" placeholder="https://example.com/logo.gif" />
+
+  <label for="date">Дата происшествия</label>
+  <input type="text" id="date" placeholder="27.08.2022" />
+
+  <label for="time">Время происшествия</label>
+  <input type="text" id="time" placeholder="19:59" />
+
+  <label for="location">Место происшествия</label>
+  <input type="text" id="location" placeholder="Las-Venturas, карьер" />
+
+  <label for="summary">Краткое описание происшествия (2-3 предложения)</label>
+  <textarea id="summary" rows="3" placeholder="Описание..."></textarea>
+
+  <label for="investigation">Ход расследования (можно пунктами)</label>
+  <textarea id="investigation" rows="6" placeholder="- Время и событие
+- Что нашли
+- Допросы
+- Дальнейшие действия"></textarea>
+
+  <label for="expertiseRequest">Текст заявки на экспертизу</label>
+  <textarea id="expertiseRequest" rows="4" placeholder="Текст запроса в лабораторию"></textarea>
+
+  <label for="expertiseImage">Ссылка на скрин заявки (опционально)</label>
+  <input type="url" id="expertiseImage" placeholder="https://example.com/request.png" />
+
+  <label for="expertiseResult">Результат экспертизы</label>
+  <textarea id="expertiseResult" rows="4" placeholder="Что установлено экспертизой"></textarea>
+
+  <label for="expertiseResultImage">Ссылка на скрин ответа лаборатории (опционально)</label>
+  <input type="url" id="expertiseResultImage" placeholder="https://example.com/response.png" />
+
+  <h3>Подозреваемые</h3>
+  <div id="suspectsContainer"></div>
+
+  <button type="button" onclick="addSuspect()">Добавить подозреваемого</button>
+
+  <label for="conclusion">Итог расследования (кто и на какой срок)</label>
+  <textarea id="conclusion" rows="3" placeholder="› | Имя Фамилия — наказание"></textarea>
+
+  <button type="button" onclick="generateReport()">Сгенерировать расследование</button>
+</form>
+
+<h3>Результат (копируй и вставляй в форум):</h3>
+<pre id="result"></pre>
+
+<script>
+let suspectCount = 0;
+
+function addSuspect(data = {}) {
+  suspectCount++;
+  const container = document.getElementById('suspectsContainer');
+  
+  const div = document.createElement('div');
+  div.className = 'suspect-block';
+  div.id = 'suspect-' + suspectCount;
+
+  div.innerHTML = `
+    <button type="button" class="remove-btn" onclick="removeSuspect('${div.id}')">× Удалить</button>
+    <label>Имя подозреваемого</label>
+    <input type="text" class="suspectName" placeholder="Lorenzo" value="${data.name || ''}" />
+    <label>Фамилия подозреваемого</label>
+    <input type="text" class="suspectSurname" placeholder="Guerra" value="${data.surname || ''}" />
+    <label>Рост (см)</label>
+    <input type="number" class="suspectHeight" placeholder="194" value="${data.height || ''}" />
+    <label>Вес (кг)</label>
+    <input type="number" class="suspectWeight" placeholder="76" value="${data.weight || ''}" />
+    <label>Раса</label>
+    <input type="text" class="suspectRace" placeholder="Европеоидная" value="${data.race || ''}" />
+    <label>Работа / занятость</label>
+    <input type="text" class="suspectJob" placeholder="Безработный" value="${data.job || ''}" />
+    <label>Дополнительная информация</label>
+    <textarea class="suspectOther" rows="2" placeholder="Хобби, особенности...">${data.other || ''}</textarea>
+    <label>Ссылка на фото подозреваемого</label>
+    <input type="url" class="suspectPhoto" placeholder="https://example.com/photo.jpg" value="${data.photo || ''}" />
+  `;
+  container.appendChild(div);
+}
+
+function removeSuspect(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function generateReport() {
+  const boss = document.getElementById('boss').value.trim();
+  const author = document.getElementById('author').value.trim();
+  const gif = document.getElementById('gif').value.trim();
+  const date = document.getElementById('date').value.trim();
+  const time = document.getElementById('time').value.trim();
+  const location = document.getElementById('location').value.trim();
+  const summary = document.getElementById('summary').value.trim();
+  const investigation = document.getElementById('investigation').value.trim();
+  const expertiseRequest = document.getElementById('expertiseRequest').value.trim();
+  const expertiseImage = document.getElementById('expertiseImage').value.trim();
+  const expertiseResult = document.getElementById('expertiseResult').value.trim();
+  const expertiseResultImage = document.getElementById('expertiseResultImage').value.trim();
+  const conclusion = document.getElementById('conclusion').value.trim();
+
+  // Собираем подозреваемых
+  const suspects = [];
+  const suspectsBlocks = document.querySelectorAll('#suspectsContainer .suspect-block');
+  suspectsBlocks.forEach(block => {
+    suspects.push({
+      name: block.querySelector('.suspectName').value.trim(),
+      surname: block.querySelector('.suspectSurname').value.trim(),
+      height: block.querySelector('.suspectHeight').value.trim(),
+      weight: block.querySelector('.suspectWeight').value.trim(),
+      race: block.querySelector('.suspectRace').value.trim(),
+      job: block.querySelector('.suspectJob').value.trim(),
+      other: block.querySelector('.suspectOther').value.trim(),
+      photo: block.querySelector('.suspectPhoto').value.trim(),
+    });
+  });
+
+  let suspectsBB = '';
+  if(suspects.length === 0) {
+    suspectsBB = '[i]Подозреваемые не добавлены.[/i]';
+  } else {
+    suspects.forEach((s, i) => {
+      suspectsBB += `[spoiler="Досье подозреваемого №${i+1}"]
+[b]Имя:[/b] ${s.name}
+[b]Фамилия:[/b] ${s.surname}
+[b]Рост:[/b] ${s.height}
+[b]Вес:[/b] ${s.weight}
+[b]Раса:[/b] ${s.race}
+[b]Работа:[/b] ${s.job}
+[b]Прочее:[/b] ${s.other}
+${s.photo ? `[img]${s.photo}[/img]` : ''}
+[/spoiler]
+
+`;
+    });
+  }
+
+  const bbcode = `
+[center]${gif ? `[img]${gif}[/img]\n` : ''}[b]TO:[/b] Head ADG-9 - [i]${boss}[/i]
+[b]FROM:[/b] Recruit of ADG-9 - [i]${author}[/i][/center]
+
+[hr]
+[center][b]« Суть расследования »[/b][/center]
+[quote]Дата: ${date}
+Время: ${time}
+Место: ${location}
+
+Краткое описание:
+${summary}[/quote]
+
+[hr]
+[center][b]« Ход расследования »[/b][/center]
+[spoiler="Ход расследования"]
+${investigation}
+[/spoiler]
+
+[hr]
+[center][b]« Подача в криминалистическую лабораторию »[/b][/center]
+[spoiler="Запрос на экспертизу"]
+${expertiseImage ? `[img]${expertiseImage}[/img]\n` : ''}
+${expertiseRequest}
+[/spoiler]
+
+[center][b]« Ответ криминалистической лаборатории »[/b][/center]
+[spoiler="Результат экспертизы"]
+${expertiseResultImage ? `[img]${expertiseResultImage}[/img]\n` : ''}
+${expertiseResult}
+[/spoiler]
+
+[hr]
+[center][b]« Досье на подозреваемых »[/b][/center]
+${suspectsBB}
+[hr]
+[center][b]« Итог расследования »[/b][/center]
+[quote]
+${conclusion}
+[/quote]
+`;
+
+  document.getElementById('result').textContent = bbcode.trim();
+}
+
+// Добавим первого подозреваемого сразу, чтобы форма не пустая
+addSuspect();
+</script>
+
+</body>
+</html>
